@@ -39,7 +39,7 @@ def avgBudget_Others(info, playersNum):
     sum=0
     for x in range(playersNum):
         sum+=info["others"][x]["budget"]
-    avg=sum/playersNum
+    avg=sum//playersNum
     return avg
 
 def block_player(info, painting, original_bid):
@@ -49,7 +49,7 @@ def block_player(info, painting, original_bid):
             new_bid = info["others"][x]["budget"]+1
             if new_bid <= info['self']['budget']:
                 bid=max(bid, new_bid)
-                print("PLAYER BLOCKED")
+                
      return bid
 
 # for concurrent runs, dont use global state
@@ -63,7 +63,7 @@ def compute_bid_state(info, prev_state=None):
     bid=min_bid
     round=info["cur_round"]
     numOfPlayers=len(info["others"])
-    print("ROUND IS", round)
+    
 
     #First step: We should analyze the list and decide the priorities of each painting based on the list
     initial_priority=analyze_list(info,3,round,info["item_types"]) 
@@ -89,37 +89,35 @@ def compute_bid_state(info, prev_state=None):
     if((painting==highest_priority) and (len(myDoublePaintingsList)==0)):
         #if i still have no paintings I bid small amount for first painting to have money left for other paintings
         if(len(mySinglePaintingsList)==0):
+            
             #if there is only one player, my first bid will be 1/3 of the total money he owns plus 1 to get slight advantage
             if(numOfPlayers==1):
                 otherPlayerBudget=info["others"][0]["budget"]
-                bid=((otherPlayerBudget)/3) + 1
+                bid=((otherPlayerBudget)//3) + 1
             else:
             #when playing against many people my first bid will be based on their average
-                bid=(avgBudget_Others(info, numOfPlayers)/3) + 1
+                bid=(avgBudget_Others(info, numOfPlayers)//3) + 1
                 new_bid=0
             #when people possess my priority painting then my bid will be based on their remaining budget 
                 for x in range(numOfPlayers):   
-                    if(info["others"][x]["item_count"][painting]==1):
+                    if(info["others"][x]["item_count"][painting]>=1):
                         bid2=((info["others"][x]["budget"])//2)
                         if(bid2>=new_bid):
                             new_bid=bid2
+                            bid2=0
+                            
                 if new_bid:
                     bid = new_bid
-
-                        
-
-
-
-
-                
-                #bid=0.2*info['self']['budget']
+            #in these calculations i might get a small value of bid but to stay safe the lowest i want to get is 20
+            if (bid<20): 
+                bid=20
                 
         else:
             bid=0.4*info['self']['budget']
     
-    #if one other player has two paintings of the same type, then i should bid one more than their budget to win the game, also if i do not have any paintings I will block because I have nothing to lose
+    #if one other player has two paintings of the same type, 
     
-    if(len(info["others"])<=2 or (len(myDoublePaintingsList)==0)):
+    if(len(info["others"])<=2 or (block_player(info,painting,bid)<=(info['self']['budget']//2))):
         bid=block_player(info, painting, bid)
     
 
