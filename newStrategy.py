@@ -18,8 +18,8 @@ def analyze_list(info,left_to_win, curr_rnd, items):
                         painter_repitition=0
                         artist_reps[painter]=j+1
     #rearrange the dictionary and store it as a tuple in a list then sort it based on which painter has three repeated paintings first
-    # the dictionary will have this format: (picasso:3,da_vinci:2)
-    # the sorted new_list will have this format: {(2,da_vinci),(3,picasso)}
+    # the dictionary will have this format: (picasso:8,da_vinci:7)
+    # the sorted new_list will have this format: {(7,da_vinci),(8,picasso)}
     lst=[(v,k) for k,v in artist_reps.items()]
     new_list= sorted(lst)
     return new_list
@@ -34,6 +34,13 @@ def myPaintingsCnt(info):
         elif(y==2):
             twosPaintingsList.append(x)
     return singlePaintingsList,twosPaintingsList
+
+def avgBudget_Others(info, playersNum):
+    sum=0
+    for x in range(playersNum):
+        sum+=info["others"][x]["budget"]
+    avg=sum/playersNum
+    return avg
 
 def block_player(info, painting, original_bid):
      bid=original_bid
@@ -55,6 +62,7 @@ def compute_bid_state(info, prev_state=None):
     min_bid=2
     bid=min_bid
     round=info["cur_round"]
+    numOfPlayers=len(info["others"])
     print("ROUND IS", round)
 
     #First step: We should analyze the list and decide the priorities of each painting based on the list
@@ -81,7 +89,31 @@ def compute_bid_state(info, prev_state=None):
     if((painting==highest_priority) and (len(myDoublePaintingsList)==0)):
         #if i still have no paintings I bid small amount for first painting to have money left for other paintings
         if(len(mySinglePaintingsList)==0):
-            bid=0.2*info['self']['budget']
+            #if there is only one player, my first bid will be 1/3 of the total money he owns plus 1 to get slight advantage
+            if(numOfPlayers==1):
+                otherPlayerBudget=info["others"][0]["budget"]
+                bid=((otherPlayerBudget)/3) + 1
+            else:
+            #when playing against many people my first bid will be based on their average
+                bid=(avgBudget_Others(info, numOfPlayers)/3) + 1
+                new_bid=0
+            #when people possess my priority painting then my bid will be based on their remaining budget 
+                for x in range(numOfPlayers):   
+                    if(info["others"][x]["item_count"][painting]==1):
+                        bid2=((info["others"][x]["budget"])//2)
+                        if(bid2>=new_bid):
+                            new_bid=bid2
+                if new_bid:
+                    bid = new_bid
+
+                        
+
+
+
+
+                
+                #bid=0.2*info['self']['budget']
+                
         else:
             bid=0.4*info['self']['budget']
     
@@ -89,7 +121,7 @@ def compute_bid_state(info, prev_state=None):
     
     if(len(info["others"])<=2 or (len(myDoublePaintingsList)==0)):
         bid=block_player(info, painting, bid)
-        
+    
 
     #We will spend all of the money left on a painting if we already purchased two of the same painting
     if(info['self']['item_count'][painting]==2):
